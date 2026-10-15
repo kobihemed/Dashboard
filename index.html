@@ -252,7 +252,7 @@
     <div class="status-text"><i class="fa-solid fa-spinner fa-spin"></i> טוען פרויקטים...</div>
   </main>
 
-  <!-- חלון הזנת סיסמת ניהול -->
+  <!-- חלון סיסמה -->
   <div class="modal-overlay" id="passwordModal">
     <div class="modal-box" style="max-width: 380px;">
       <div class="modal-header">
@@ -273,7 +273,7 @@
     </div>
   </div>
 
-  <!-- חלון הוספה / עריכת פרויקט -->
+  <!-- חלון הוספה / עריכה -->
   <div class="modal-overlay" id="projectModal">
     <div class="modal-box">
       <div class="modal-header">
@@ -328,9 +328,8 @@
     let adminPassword = "";
     let projects = [];
     let detectedImageUrl = "";
-    let currentMode = "add"; // 'add' או 'edit'
+    let currentMode = "add";
 
-    // טעינת סשן ניהול קיים במידה ונשמר
     window.addEventListener('DOMContentLoaded', () => {
       const savedPwd = sessionStorage.getItem("admin_pwd");
       if (savedPwd) {
@@ -634,7 +633,7 @@
       });
     }
 
-    // קיצור דרך במקלדת: Ctrl + Shift + A
+    // קיצור דרך: Ctrl + Shift + A
     window.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') {
         handleAdminButtonClick();
