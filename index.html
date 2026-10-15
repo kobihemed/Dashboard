@@ -319,7 +319,8 @@
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxaZoBTWm6e8zHF1HVH-DAiG3tlr__t2G2HMxc_OcNrvqWbh7yOXB-5amQFvd6owinc/exec";
+    // שים כאן את הכתובת החדשה שתקבל מהפריסה (New deployment)
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwIN1BNEvDpcQDLLhejBwy5Hp129RRcVpQ6BRGfucVI3xVrvNrDo17fVlE0fr7d9Zg/exec";
 
     let isAdmin = false;
     let adminPassword = "";
@@ -327,7 +328,6 @@
     let detectedImageUrl = "";
     let currentMode = "add";
 
-    // פונקציית עזר לשליחת בקשות בטוחה ל-Apps Script
     async function sendApiRequest(payload) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
@@ -625,7 +625,6 @@
       });
     }
 
-    // קיצור דרך: Ctrl + Shift + A
     window.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') {
         handleAdminButtonClick();
