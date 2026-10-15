@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>פורטל הפרויקטים שלי</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #151d2f;
+      --border: #222f46;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-hover: #0284c7;
+      --danger: #ef4444;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 2rem 1.5rem; min-height: 100vh; }
+
+    header {
+      max-width: 1200px;
+      margin: 0 auto 2.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand i { font-size: 1.8rem; color: var(--primary); }
+    h1 { font-size: 1.6rem; font-weight: 700; }
+
+    .header-controls { display: flex; gap: 10px; align-items: center; }
+
+    button {
+      background: var(--primary);
+      color: #0b0f19;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.95rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    button:hover { background: var(--primary-hover); }
+    button.secondary { background: #1e293b; color: var(--text); border: 1px solid var(--border); }
+    button.secondary:hover { background: #334155; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .grid {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 1.8rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.4); border-color: #3b82f688; }
+
+    .card-thumb-wrap {
+      width: 100%;
+      height: 170px;
+      background: #060911;
+      position: relative;
+      overflow: hidden;
+    }
+    .card-thumb-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: opacity 0.3s;
+    }
+
+    .card-content {
+      padding: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      justify-content: space-between;
+    }
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.5rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .card-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+      margin-top: 1rem;
+    }
+    .card-link:hover { text-decoration: underline; }
+
+    .delete-btn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(239, 68, 68, 0.9);
+      color: white;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 5;
+    }
+    .delete-btn:hover { background: var(--danger); transform: scale(1.1); }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(5px);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+    .modal-box {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 480px;
+      padding: 2rem;
+    }
+    .modal-header {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .form-group { margin-bottom: 1.2rem; }
+    .form-group label {
+      display: block;
+      margin-bottom: 0.4rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .form-group input {
+      width: 100%;
+      padding: 0.7rem 0.9rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #090e1a;
+      color: #fff;
+      font-size: 0.95rem;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .preview-box {
+      margin-top: 0.8rem;
+      border-radius: 8px;
+      border: 1px dashed var(--border);
+      background: #090e1a;
+      overflow: hidden;
+      display: none;
+      position: relative;
+      height: 140px;
+    }
+    .preview-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .preview-status {
+      font-size: 0.8rem;
+      color: var(--primary);
+      margin-top: 0.3rem;
+      display: none;
+    }
+
+    .status-text {
+      color: var(--text-muted);
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 4rem 0;
+      font-size: 1.1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <i class="fa-solid fa-layer-group"></i>
+      <h1>פורטל הפרויקטים שלי</h1>
+    </div>
+    <div class="header-controls">
+      <button id="addBtn" style="display: none;" onclick="openModal()">
+        <i class="fa-solid fa-plus"></i> פרויקט חדש
+      </button>
+      <button class="secondary" id="adminToggle" onclick="toggleAdmin()">
+        <i class="fa-solid fa-lock"></i> מצב ניהול
+      </button>
+    </div>
+  </header>
+
+  <main class="grid" id="projectsGrid">
+    <div class="status-text"><i class="fa-solid fa-spinner fa-spin"></i> טוען פרויקטים...</div>
+  </main>
+
+  <!-- חלון הוספת פרויקט -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span>הוספת קישור לפרויקט</span>
+        <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--text-muted);" onclick="closeModal()"></i>
+      </div>
+
+      <div class="form-group">
+        <label>כתובת URL של הפרויקט</label>
+        <input type="url" id="projUrl" placeholder="https://..." onpaste="triggerAutoFetch()" onblur="triggerAutoFetch()">
+        <div class="preview-status" id="fetchStatus"><i class="fa-solid fa-wand-magic-sparkles fa-spin"></i> מושך כותרת ותמונה אוטומטית...</div>
+      </div>
+
+      <div class="form-group">
+        <label>שם הפרויקט</label>
+        <input type="text" id="projTitle" placeholder="יוזן אוטומטית או הזן ידנית">
+      </div>
+
+      <div class="form-group">
+        <label>תצוגה מקדימה של התמונה (נמשכה אוטומטית)</label>
+        <div class="preview-box" id="previewBox">
+          <img id="previewImage" src="" alt="תצוגה מקדימה">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>או העלה קובץ תמונה ידני מהמחשב (יישמר ב-Drive)</label>
+        <input type="file" id="projImgFile" accept="image/*" onchange="handleManualImageSelect()">
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+        <button id="saveBtn" onclick="submitProject()" style="flex: 1; justify-content: center;">
+          <i class="fa-solid fa-check"></i> שמור פרויקט
+        </button>
+        <button class="secondary" onclick="closeModal()">ביטול</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // הגדרת כתובת ה-Web App מ-Apps Script
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwVEypwjRCjGZohKGb207vS1adUtpo5PLVaAhKKulwu0etuuVnM3b-mN6d5r3CV_K3A/exec";
+
+    let isAdmin = false;
+    let adminPassword = "";
+    let projects = [];
+    let detectedImageUrl = "";
+
+    async function loadProjects() {
+      try {
+        const res = await fetch(SCRIPT_URL);
+        projects = await res.json();
+        renderProjects();
+      } catch (err) {
+        document.getElementById('projectsGrid').innerHTML = '<div class="status-text">שגיאה בטעינת הנתונים מהשרת.</div>';
+      }
+    }
+
+    function renderProjects() {
+      const grid = document.getElementById('projectsGrid');
+      if (!projects || projects.length === 0) {
+        grid.innerHTML = '<div class="status-text">אין עדיין פרויקטים להצגה. לחץ על "מצב ניהול" כדי להוסיף את הראשון.</div>';
+        return;
+      }
+
+      grid.innerHTML = projects.map(p => `
+        <div class="card">
+          ${isAdmin ? `<button class="delete-btn" style="display:flex" onclick="deleteProject('${p.id}')" title="מחק פרויקט"><i class="fa-solid fa-trash"></i></button>` : ''}
+          <div class="card-thumb-wrap">
+            <img src="${p.imageUrl || 'https://via.placeholder.com/600x350?text=No+Preview'}" alt="${p.title}" loading="lazy" onerror="this.src='https://via.placeholder.com/600x350?text=Image+Unavailable'">
+          </div>
+          <div class="card-content">
+            <h2 class="card-title" title="${p.title}">${p.title}</h2>
+            <a href="${p.url}" class="card-link" target="_blank" rel="noopener noreferrer">
+              כניסה לפרויקט <i class="fa-solid fa-arrow-left"></i>
+            </a>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function toggleAdmin() {
+      if (!isAdmin) {
+        const pwd = prompt("הזן סיסמת ניהול:");
+        if (pwd) {
+          adminPassword = pwd;
+          isAdmin = true;
+          document.getElementById('addBtn').style.display = 'inline-flex';
+          document.getElementById('adminToggle').innerHTML = '<i class="fa-solid fa-lock-open"></i> צא מניהול';
+          renderProjects();
+        }
+      } else {
+        isAdmin = false;
+        adminPassword = "";
+        document.getElementById('addBtn').style.display = 'none';
+        document.getElementById('adminToggle').innerHTML = '<i class="fa-solid fa-lock"></i> מצב ניהול';
+        renderProjects();
+      }
+    }
+
+    function openModal() {
+      document.getElementById('modalOverlay').style.display = 'flex';
+      document.getElementById('projUrl').focus();
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').style.display = 'none';
+      document.getElementById('projUrl').value = "";
+      document.getElementById('projTitle').value = "";
+      document.getElementById('projImgFile').value = "";
+      document.getElementById('previewBox').style.display = 'none';
+      document.getElementById('fetchStatus').style.display = 'none';
+      detectedImageUrl = "";
+    }
+
+    // משיכה אוטומטית בהדבקה או יציאה משדה ה-URL
+    function triggerAutoFetch() {
+      setTimeout(async () => {
+        const url = document.getElementById('projUrl').value.trim();
+        if (!url || !url.startsWith("http")) return;
+
+        const statusEl = document.getElementById('fetchStatus');
+        const titleEl = document.getElementById('projTitle');
+        const previewBox = document.getElementById('previewBox');
+        const previewImg = document.getElementById('previewImage');
+
+        statusEl.style.display = 'block';
+
+        try {
+          const res = await fetch(SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify({ action: "fetch_meta", url: url })
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            if (data.title && !titleEl.value) {
+              titleEl.value = data.title;
+            }
+            if (data.imageUrl) {
+              detectedImageUrl = data.imageUrl;
+              previewImg.src = data.imageUrl;
+              previewBox.style.display = 'block';
+            }
+          }
+        } catch (e) {
+          console.warn("חילוץ אוטומטי לא הצליח:", e);
+        } finally {
+          statusEl.style.display = 'none';
+        }
+      }, 150);
+    }
+
+    function handleManualImageSelect() {
+      const fileInput = document.getElementById('projImgFile');
+      if (fileInput.files && fileInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          document.getElementById('previewImage').src = e.target.result;
+          document.getElementById('previewBox').style.display = 'block';
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+      }
+    }
+
+    async function submitProject() {
+      const url = document.getElementById('projUrl').value.trim();
+      const title = document.getElementById('projTitle').value.trim();
+      const fileInput = document.getElementById('projImgFile');
+      const saveBtn = document.getElementById('saveBtn');
+
+      if (!url) return alert("חובה להזין כתובת URL");
+      if (!title) return alert("חובה להזין שם לפרויקט");
+
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> שומר...';
+
+      let imageFile = null;
+      if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const base64 = await fileToBase64(file);
+        imageFile = {
+          name: file.name,
+          type: file.type,
+          base64: base64.split(',')[1]
+        };
+      }
+
+      const payload = {
+        action: "add",
+        password: adminPassword,
+        title: title,
+        url: url,
+        autoImageUrl: detectedImageUrl,
+        imageFile: imageFile
+      };
+
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+
+        if (result.success) {
+          closeModal();
+          loadProjects();
+        } else {
+          alert("שגיאה: " + (result.error || "לא ניתן היה לשמור"));
+        }
+      } catch (err) {
+        alert("שגיאת תקשורת עם השרת");
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> שמור פרויקט';
+      }
+    }
+
+    async function deleteProject(id) {
+      if (!confirm("האם אתה בטוח שברצונך למחוק פרויקט זה?")) return;
+
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "delete",
+            password: adminPassword,
+            id: id
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          loadProjects();
+        } else {
+          alert("שגיאה במחיקה: " + result.error);
+        }
+      } catch (err) {
+        alert("שגיאת תקשורת");
+      }
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+      });
+    }
+
+    // קיצור דרך במקלדת למצב ניהול: Ctrl + Shift + A
+    window.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') {
+        toggleAdmin();
+      }
+    });
+
+    // טעינה ראשונית של הפרויקטים
+    loadProjects();
+  </script>
+</body>
+</html>
