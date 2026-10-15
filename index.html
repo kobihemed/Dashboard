@@ -135,7 +135,7 @@
     }
     .delete-btn:hover { background: var(--danger); transform: scale(1.1); }
 
-    /* Modal */
+    /* Modals */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -213,6 +213,13 @@
       padding: 4rem 0;
       font-size: 1.1rem;
     }
+
+    .error-msg {
+      color: var(--danger);
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -223,10 +230,10 @@
       <h1>פורטל הפרויקטים שלי</h1>
     </div>
     <div class="header-controls">
-      <button id="addBtn" style="display: none;" onclick="openModal()">
+      <button id="addBtn" style="display: none;" onclick="openAddModal()">
         <i class="fa-solid fa-plus"></i> פרויקט חדש
       </button>
-      <button class="secondary" id="adminToggle" onclick="toggleAdmin()">
+      <button class="secondary" id="adminToggle" onclick="handleAdminButtonClick()">
         <i class="fa-solid fa-lock"></i> מצב ניהול
       </button>
     </div>
@@ -236,12 +243,33 @@
     <div class="status-text"><i class="fa-solid fa-spinner fa-spin"></i> טוען פרויקטים...</div>
   </main>
 
+  <!-- חלון הזנת סיסמת ניהול -->
+  <div class="modal-overlay" id="passwordModal">
+    <div class="modal-box" style="max-width: 380px;">
+      <div class="modal-header">
+        <span>כניסה למצב ניהול</span>
+        <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--text-muted);" onclick="closePasswordModal()"></i>
+      </div>
+      <div class="form-group">
+        <label>הזן סיסמת ניהול:</label>
+        <input type="password" id="adminPasswordInput" placeholder="סיסמה..." onkeydown="if(event.key==='Enter') verifyAndLogin()">
+        <div class="error-msg" id="passwordError">סיסמת ניהול שגויה. נסה שוב.</div>
+      </div>
+      <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+        <button id="verifyBtn" onclick="verifyAndLogin()" style="flex: 1; justify-content: center;">
+          <i class="fa-solid fa-arrow-right-to-bracket"></i> כניסה
+        </button>
+        <button class="secondary" onclick="closePasswordModal()">ביטול</button>
+      </div>
+    </div>
+  </div>
+
   <!-- חלון הוספת פרויקט -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-box">
       <div class="modal-header">
         <span>הוספת קישור לפרויקט</span>
-        <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--text-muted);" onclick="closeModal()"></i>
+        <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--text-muted);" onclick="closeAddModal()"></i>
       </div>
 
       <div class="form-group">
@@ -271,19 +299,30 @@
         <button id="saveBtn" onclick="submitProject()" style="flex: 1; justify-content: center;">
           <i class="fa-solid fa-check"></i> שמור פרויקט
         </button>
-        <button class="secondary" onclick="closeModal()">ביטול</button>
+        <button class="secondary" onclick="closeAddModal()">ביטול</button>
       </div>
     </div>
   </div>
 
   <script>
     // הגדרת כתובת ה-Web App מ-Apps Script
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwVEypwjRCjGZohKGb207vS1adUtpo5PLVaAhKKulwu0etuuVnM3b-mN6d5r3CV_K3A/exec";
+    const SCRIPT_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL";
 
     let isAdmin = false;
     let adminPassword = "";
     let projects = [];
     let detectedImageUrl = "";
+
+    // טעינת מצב ניהול שמור מהסשן הנוכחי (אם יש)
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedPwd = sessionStorage.getItem("admin_pwd");
+      if (savedPwd) {
+        adminPassword = savedPwd;
+        isAdmin = true;
+        updateAdminUI();
+      }
+      loadProjects();
+    });
 
     async function loadProjects() {
       try {
@@ -318,31 +357,85 @@
       `).join('');
     }
 
-    function toggleAdmin() {
-      if (!isAdmin) {
-        const pwd = prompt("הזן סיסמת ניהול:");
-        if (pwd) {
-          adminPassword = pwd;
-          isAdmin = true;
-          document.getElementById('addBtn').style.display = 'inline-flex';
-          document.getElementById('adminToggle').innerHTML = '<i class="fa-solid fa-lock-open"></i> צא מניהול';
-          renderProjects();
-        }
+    function updateAdminUI() {
+      const addBtn = document.getElementById('addBtn');
+      const toggleBtn = document.getElementById('adminToggle');
+
+      if (isAdmin) {
+        addBtn.style.display = 'inline-flex';
+        toggleBtn.innerHTML = '<i class="fa-solid fa-lock-open"></i> צא מניהול';
       } else {
+        addBtn.style.display = 'none';
+        toggleBtn.innerHTML = '<i class="fa-solid fa-lock"></i> מצב ניהול';
+      }
+      renderProjects();
+    }
+
+    function handleAdminButtonClick() {
+      if (isAdmin) {
+        // יציאה ממצב ניהול
         isAdmin = false;
         adminPassword = "";
-        document.getElementById('addBtn').style.display = 'none';
-        document.getElementById('adminToggle').innerHTML = '<i class="fa-solid fa-lock"></i> מצב ניהול';
-        renderProjects();
+        sessionStorage.removeItem("admin_pwd");
+        updateAdminUI();
+      } else {
+        openPasswordModal();
       }
     }
 
-    function openModal() {
+    function openPasswordModal() {
+      document.getElementById('passwordModal').style.display = 'flex';
+      document.getElementById('adminPasswordInput').value = "";
+      document.getElementById('passwordError').style.display = 'none';
+      setTimeout(() => document.getElementById('adminPasswordInput').focus(), 50);
+    }
+
+    function closePasswordModal() {
+      document.getElementById('passwordModal').style.display = 'none';
+    }
+
+    async function verifyAndLogin() {
+      const pwd = document.getElementById('adminPasswordInput').value.trim();
+      const verifyBtn = document.getElementById('verifyBtn');
+      const errorMsg = document.getElementById('passwordError');
+
+      if (!pwd) return;
+
+      verifyBtn.disabled = true;
+      verifyBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> בודק...';
+      errorMsg.style.display = 'none';
+
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "verify_admin", password: pwd })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          isAdmin = true;
+          adminPassword = pwd;
+          sessionStorage.setItem("admin_pwd", pwd);
+          closePasswordModal();
+          updateAdminUI();
+        } else {
+          errorMsg.style.display = 'block';
+          document.getElementById('adminPasswordInput').focus();
+        }
+      } catch (err) {
+        alert("שגיאת רשת בבדיקת הסיסמה");
+      } finally {
+        verifyBtn.disabled = false;
+        verifyBtn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> כניסה';
+      }
+    }
+
+    function openAddModal() {
       document.getElementById('modalOverlay').style.display = 'flex';
       document.getElementById('projUrl').focus();
     }
 
-    function closeModal() {
+    function closeAddModal() {
       document.getElementById('modalOverlay').style.display = 'none';
       document.getElementById('projUrl').value = "";
       document.getElementById('projTitle').value = "";
@@ -352,7 +445,6 @@
       detectedImageUrl = "";
     }
 
-    // משיכה אוטומטית בהדבקה או יציאה משדה ה-URL
     function triggerAutoFetch() {
       setTimeout(async () => {
         const url = document.getElementById('projUrl').value.trim();
@@ -442,7 +534,7 @@
         const result = await res.json();
 
         if (result.success) {
-          closeModal();
+          closeAddModal();
           loadProjects();
         } else {
           alert("שגיאה: " + (result.error || "לא ניתן היה לשמור"));
@@ -487,15 +579,12 @@
       });
     }
 
-    // קיצור דרך במקלדת למצב ניהול: Ctrl + Shift + A
+    // קיצור דרך במקלדת: Ctrl + Shift + A
     window.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') {
-        toggleAdmin();
+        handleAdminButtonClick();
       }
     });
-
-    // טעינה ראשונית של הפרויקטים
-    loadProjects();
   </script>
 </body>
 </html>
