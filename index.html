@@ -15,6 +15,7 @@
       --primary: #38bdf8;
       --primary-hover: #0284c7;
       --danger: #ef4444;
+      --warning: #f59e0b;
       --radius: 12px;
     }
 
@@ -117,23 +118,31 @@
     }
     .card-link:hover { text-decoration: underline; }
 
-    .delete-btn {
+    /* כפתורי ניהול בכל כרטיס */
+    .card-admin-actions {
       position: absolute;
       top: 10px;
       left: 10px;
-      background: rgba(239, 68, 68, 0.9);
-      color: white;
-      border: none;
+      display: none;
+      gap: 6px;
+      z-index: 5;
+    }
+    .action-icon-btn {
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      display: none;
+      border: none;
+      display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      z-index: 5;
+      color: white;
+      transition: transform 0.15s;
+      padding: 0;
     }
-    .delete-btn:hover { background: var(--danger); transform: scale(1.1); }
+    .action-icon-btn:hover { transform: scale(1.1); }
+    .action-icon-btn.edit-btn { background: rgba(245, 158, 11, 0.95); }
+    .action-icon-btn.delete-btn { background: rgba(239, 68, 68, 0.95); }
 
     /* Modals */
     .modal-overlay {
@@ -230,7 +239,7 @@
       <h1>פורטל הפרויקטים שלי</h1>
     </div>
     <div class="header-controls">
-      <button id="addBtn" style="display: none;" onclick="openAddModal()">
+      <button id="addBtn" style="display: none;" onclick="openProjectModal('add')">
         <i class="fa-solid fa-plus"></i> פרויקט חדש
       </button>
       <button class="secondary" id="adminToggle" onclick="handleAdminButtonClick()">
@@ -264,17 +273,24 @@
     </div>
   </div>
 
-  <!-- חלון הוספת פרויקט -->
-  <div class="modal-overlay" id="modalOverlay">
+  <!-- חלון הוספה / עריכת פרויקט -->
+  <div class="modal-overlay" id="projectModal">
     <div class="modal-box">
       <div class="modal-header">
-        <span>הוספת קישור לפרויקט</span>
-        <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--text-muted);" onclick="closeAddModal()"></i>
+        <span id="modalTitle">הוספת קישור לפרויקט</span>
+        <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--text-muted);" onclick="closeProjectModal()"></i>
       </div>
+
+      <input type="hidden" id="editProjectId" value="">
 
       <div class="form-group">
         <label>כתובת URL של הפרויקט</label>
-        <input type="url" id="projUrl" placeholder="https://..." onpaste="triggerAutoFetch()" onblur="triggerAutoFetch()">
+        <div style="display: flex; gap: 8px;">
+          <input type="url" id="projUrl" placeholder="https://..." onpaste="triggerAutoFetch()" onblur="triggerAutoFetch()">
+          <button type="button" class="secondary" onclick="triggerAutoFetch()" title="רענן מטא-דאטה מכתובת ה-URL" style="padding: 0.6rem 0.9rem;">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </button>
+        </div>
         <div class="preview-status" id="fetchStatus"><i class="fa-solid fa-wand-magic-sparkles fa-spin"></i> מושך כותרת ותמונה אוטומטית...</div>
       </div>
 
@@ -284,36 +300,37 @@
       </div>
 
       <div class="form-group">
-        <label>תצוגה מקדימה של התמונה (נמשכה אוטומטית)</label>
+        <label>תצוגה מקדימה של התמונה (נוכחית / נמשכה)</label>
         <div class="preview-box" id="previewBox">
           <img id="previewImage" src="" alt="תצוגה מקדימה">
         </div>
       </div>
 
       <div class="form-group">
-        <label>או העלה קובץ תמונה ידני מהמחשב (יישמר ב-Drive)</label>
+        <label id="uploadLabel">העלאת קובץ תמונה ידני מהמחשב (יישמר ב-Drive)</label>
         <input type="file" id="projImgFile" accept="image/*" onchange="handleManualImageSelect()">
       </div>
 
       <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
-        <button id="saveBtn" onclick="submitProject()" style="flex: 1; justify-content: center;">
+        <button id="saveBtn" onclick="submitProjectForm()" style="flex: 1; justify-content: center;">
           <i class="fa-solid fa-check"></i> שמור פרויקט
         </button>
-        <button class="secondary" onclick="closeAddModal()">ביטול</button>
+        <button class="secondary" onclick="closeProjectModal()">ביטול</button>
       </div>
     </div>
   </div>
 
   <script>
-    // הגדרת כתובת ה-Web App מ-Apps Script
+    // כתובת ה-Web App מ-Apps Script
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxaZoBTWm6e8zHF1HVH-DAiG3tlr__t2G2HMxc_OcNrvqWbh7yOXB-5amQFvd6owinc/exec";
 
     let isAdmin = false;
     let adminPassword = "";
     let projects = [];
     let detectedImageUrl = "";
+    let currentMode = "add"; // 'add' או 'edit'
 
-    // טעינת מצב ניהול שמור מהסשן הנוכחי (אם יש)
+    // טעינת סשן ניהול קיים במידה ונשמר
     window.addEventListener('DOMContentLoaded', () => {
       const savedPwd = sessionStorage.getItem("admin_pwd");
       if (savedPwd) {
@@ -343,7 +360,14 @@
 
       grid.innerHTML = projects.map(p => `
         <div class="card">
-          ${isAdmin ? `<button class="delete-btn" style="display:flex" onclick="deleteProject('${p.id}')" title="מחק פרויקט"><i class="fa-solid fa-trash"></i></button>` : ''}
+          <div class="card-admin-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
+            <button class="action-icon-btn edit-btn" onclick="openProjectModal('edit', '${p.id}')" title="ערוך פרויקט">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="action-icon-btn delete-btn" onclick="deleteProject('${p.id}')" title="מחק פרויקט">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
           <div class="card-thumb-wrap">
             <img src="${p.imageUrl || 'https://via.placeholder.com/600x350?text=No+Preview'}" alt="${p.title}" loading="lazy" onerror="this.src='https://via.placeholder.com/600x350?text=Image+Unavailable'">
           </div>
@@ -373,7 +397,6 @@
 
     function handleAdminButtonClick() {
       if (isAdmin) {
-        // יציאה ממצב ניהול
         isAdmin = false;
         adminPassword = "";
         sessionStorage.removeItem("admin_pwd");
@@ -423,20 +446,50 @@
           document.getElementById('adminPasswordInput').focus();
         }
       } catch (err) {
-        alert("שגיאת רשת בבדיקת הסיסמה");
+        alert("שגיאת תקשורת בבדיקת הסיסמה");
       } finally {
         verifyBtn.disabled = false;
         verifyBtn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> כניסה';
       }
     }
 
-    function openAddModal() {
-      document.getElementById('modalOverlay').style.display = 'flex';
-      document.getElementById('projUrl').focus();
+    function openProjectModal(mode, projectId = null) {
+      currentMode = mode;
+      document.getElementById('projectModal').style.display = 'flex';
+      document.getElementById('projImgFile').value = "";
+      document.getElementById('fetchStatus').style.display = 'none';
+
+      if (mode === 'edit') {
+        const proj = projects.find(p => p.id === projectId);
+        if (!proj) return;
+
+        document.getElementById('modalTitle').innerText = "עריכת פרויקט קיים";
+        document.getElementById('editProjectId').value = proj.id;
+        document.getElementById('projUrl').value = proj.url;
+        document.getElementById('projTitle').value = proj.title;
+        document.getElementById('uploadLabel').innerText = "החלף בתמונה ידנית חדשה (אופציונלי):";
+
+        detectedImageUrl = proj.imageUrl || "";
+        if (detectedImageUrl) {
+          document.getElementById('previewImage').src = detectedImageUrl;
+          document.getElementById('previewBox').style.display = 'block';
+        } else {
+          document.getElementById('previewBox').style.display = 'none';
+        }
+      } else {
+        document.getElementById('modalTitle').innerText = "הוספת קישור לפרויקט";
+        document.getElementById('editProjectId').value = "";
+        document.getElementById('projUrl').value = "";
+        document.getElementById('projTitle').value = "";
+        document.getElementById('uploadLabel').innerText = "או העלה קובץ תמונה ידני מהמחשב (יישמר ב-Drive):";
+        document.getElementById('previewBox').style.display = 'none';
+        detectedImageUrl = "";
+        setTimeout(() => document.getElementById('projUrl').focus(), 50);
+      }
     }
 
-    function closeAddModal() {
-      document.getElementById('modalOverlay').style.display = 'none';
+    function closeProjectModal() {
+      document.getElementById('projectModal').style.display = 'none';
       document.getElementById('projUrl').value = "";
       document.getElementById('projTitle').value = "";
       document.getElementById('projImgFile').value = "";
@@ -465,7 +518,7 @@
           const data = await res.json();
 
           if (data.success) {
-            if (data.title && !titleEl.value) {
+            if (data.title && (!titleEl.value || currentMode === 'add')) {
               titleEl.value = data.title;
             }
             if (data.imageUrl) {
@@ -494,11 +547,12 @@
       }
     }
 
-    async function submitProject() {
+    async function submitProjectForm() {
       const url = document.getElementById('projUrl').value.trim();
       const title = document.getElementById('projTitle').value.trim();
       const fileInput = document.getElementById('projImgFile');
       const saveBtn = document.getElementById('saveBtn');
+      const editId = document.getElementById('editProjectId').value;
 
       if (!url) return alert("חובה להזין כתובת URL");
       if (!title) return alert("חובה להזין שם לפרויקט");
@@ -518,7 +572,8 @@
       }
 
       const payload = {
-        action: "add",
+        action: currentMode === 'edit' ? 'edit' : 'add',
+        id: editId,
         password: adminPassword,
         title: title,
         url: url,
@@ -534,7 +589,7 @@
         const result = await res.json();
 
         if (result.success) {
-          closeAddModal();
+          closeProjectModal();
           loadProjects();
         } else {
           alert("שגיאה: " + (result.error || "לא ניתן היה לשמור"));
@@ -566,7 +621,7 @@
           alert("שגיאה במחיקה: " + result.error);
         }
       } catch (err) {
-        alert("שגיאת תקשורת");
+        alert("שגיאת תקשורת עם השרת");
       }
     }
 
